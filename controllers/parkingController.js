@@ -7,7 +7,7 @@ const parkVehicle = async (req, res) => {
     const { slotNo, vehicleId, userId, parkingLotId } = req.body;
 
     try {
-        // Check if the slot is already occupiedb 
+        // Check if the slot is already occupied
         const existingParking = await Parking.findOne({ slotNo, parkingLotId, isParked: true });
         if (existingParking) {
             return res.status(400).json({ error: 'Slot already occupied' });
@@ -63,7 +63,9 @@ const deparkVehicle = async (req, res) => {
         if (!vehicle) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
-        
+
+        await Parking.findByIdAndDelete(id);
+
         res.status(200).json({ charge,vehicle });
     } catch (error) {
         res.status(400).json({ error: error.message });
