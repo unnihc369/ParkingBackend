@@ -1,12 +1,13 @@
 const Parking = require('../models/parkingModel.js');
 const ParkingLot = require('../models/parkinglotModel.js');
+const Vehicle = require('../models/vehicleModel.js');
 
 // Park a vehicle
 const parkVehicle = async (req, res) => {
     const { slotNo, vehicleId, userId, parkingLotId } = req.body;
 
     try {
-        // Check if the slot is already occupied
+        // Check if the slot is already occupiedb 
         const existingParking = await Parking.findOne({ slotNo, parkingLotId, isParked: true });
         if (existingParking) {
             return res.status(400).json({ error: 'Slot already occupied' });
@@ -27,6 +28,12 @@ const parkVehicle = async (req, res) => {
             isParked: true,
             parkedAt: new Date()
         });
+
+        const vehicle = await Vehicle.findByIdAndUpdate(vehicleId, { isParked: true }, { new: true });
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+
         res.status(201).json(parking);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -39,7 +46,7 @@ const deparkVehicle = async (req, res) => {
 
     try {
         const parking = await Parking.findById(id);
-        if (!parking || !parking.isParked) {
+        if (!parking ) {
             return res.status(404).json({ error: 'Vehicle not parked' });
         }
 
@@ -52,7 +59,28 @@ const deparkVehicle = async (req, res) => {
         parking.deparkedAt = new Date();
         await parking.save();
 
-        res.status(200).json({ charge });
+        const vehicle = await Vehicle.findByIdAndUpdate(parking.vehicleId, { isParked: false }, { new: true });
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        
+        res.status(200).json({ charge,vehicle });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const getUserParkedVehicles = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const parkedVehicles = await Parking.find({ userId: id }).populate('vehicleId');
+
+        const response = parkedVehicles.map(parking => ({
+            ...parking.toObject(),
+            vehicle: parking.vehicleId // assuming vehicleId is populated with the vehicle details
+        }));
+
+        res.status(200).json(response);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -74,5 +102,6 @@ const getParkedVehicles = async (req, res) => {
 module.exports = {
     parkVehicle,
     deparkVehicle,
-    getParkedVehicles
+    getParkedVehicles,
+    getUserParkedVehicles
 };

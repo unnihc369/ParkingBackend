@@ -15,7 +15,7 @@ const addParkingLot = async (req, res) => {
 };
 
 const getParkingLot = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; 
 
     try {
         const parkingLot = await ParkingLot.findById(id);
