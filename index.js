@@ -13,7 +13,7 @@ const parkingRoutes = require('./routes/parking')
 const app = express()
 
 // middleware
-app.use(cors()) // Use the cors middleware
+app.use(cors()) 
 app.use(express.json())
 
 app.use((req, res, next) => {

@@ -1,8 +1,9 @@
 const Parking = require('../models/parkingModel.js');
 const ParkingLot = require('../models/parkinglotModel.js');
+const userModel = require('../models/userModel.js');
 const Vehicle = require('../models/vehicleModel.js');
+const nodemailer = require('nodemailer');
 
-// Park a vehicle
 const parkVehicle = async (req, res) => {
     const { slotNo, vehicleId, userId, parkingLotId } = req.body;
 
@@ -29,10 +30,57 @@ const parkVehicle = async (req, res) => {
             parkedAt: new Date()
         });
 
+        // Update vehicle status
         const vehicle = await Vehicle.findByIdAndUpdate(vehicleId, { isParked: true }, { new: true });
         if (!vehicle) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
+
+        // Fetch vehicle and parking lot details
+        const vehicleDetails = await Vehicle.findById(vehicleId);
+        const parkingLotDetails = await ParkingLot.findById(parkingLotId);
+
+        if (!vehicleDetails || !parkingLotDetails) {
+            return res.status(404).json({ error: 'Details not found' });
+        }
+
+        const user = await userModel.findById(userId);
+
+        // Create transporter for sending email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "unnihc369@gmail.com",
+                pass: "jgcl qrhg bcpz trzb",
+            },
+        });
+
+        // Create email options with detailed information
+        const mailOptions = {
+            from: "unnihc369@gmail.com",
+            to: user.email,
+            subject: "Vehicle Parked Successfully!",
+            text: `Dear ${user.username},
+
+Your vehicle has been parked successfully.
+
+Parking Details:
+- Vehicle Name: ${vehicleDetails.carModel}
+- Plate Number: ${vehicleDetails.plateNumber}
+- Parking Lot: ${parkingLotDetails.name}
+- Address: ${parkingLotDetails.address}
+- Slot Number: ${slotNo}
+- Price per Hour: ${parkingLotDetails.pricePerHour}
+
+Thank you for using our Parking Service!
+
+Best regards,
+Parking Service Team
+`
+        };
+
+        // Send the email
+        await transporter.sendMail(mailOptions);
 
         res.status(201).json(parking);
     } catch (error) {
@@ -46,7 +94,7 @@ const deparkVehicle = async (req, res) => {
 
     try {
         const parking = await Parking.findById(id);
-        if (!parking ) {
+        if (!parking) {
             return res.status(404).json({ error: 'Vehicle not parked' });
         }
 
@@ -64,9 +112,48 @@ const deparkVehicle = async (req, res) => {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
 
+        const user = await userModel.findById(parking.userId);
+
+        // Create transporter for sending email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "unnihc369@gmail.com",
+                pass: "jgcl qrhg bcpz trzb",
+            },
+        });
+
+        // Create email options with detailed information
+        const mailOptions = {
+            from: "unnihc369@gmail.com",
+            to: user.email,
+            subject: "Vehicle Deparked Successfully!",
+            text: `Dear ${user.username},
+
+Your vehicle has been successfully deparked.
+
+Parking Details:
+- Vehicle Name: ${vehicle.carModel}
+- Plate Number: ${vehicle.plateNumber}
+- Parking Lot: ${parkingLot.name}
+- Address: ${parkingLot.address}
+- Slot Number: ${parking.slotNo}
+- Parked Duration: ${parkedDuration.toFixed(2)} hours
+- Charge: ₹${charge}
+
+Thank you for using our Parking Service!
+
+Best regards,
+Parking Service Team
+`
+        };
+
+        // Send the email
+        await transporter.sendMail(mailOptions);
+
         await Parking.findByIdAndDelete(id);
 
-        res.status(200).json({ charge,vehicle });
+        res.status(200).json({ charge, vehicle });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
